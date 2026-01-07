@@ -3,14 +3,14 @@ import { getDatabase } from 'firebase/database';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBIQaHpTpXgca4gBUM1h3FJ7G1-d_VEwuc",
-  authDomain: "droppoint-d82ef.firebaseapp.com",
-  projectId: "droppoint-d82ef",
-  storageBucket: "droppoint-d82ef.firebasestorage.app",
-  messagingSenderId: "165087375484",
-  appId: "1:165087375484:web:a968bb83496f46456319f9",
-  measurementId: "G-XWVQ5H8W4V",
-  databaseURL: "https://droppoint-d82ef-default-rtdb.asia-southeast1.firebasedatabase.app"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID",
+  measurementId: "YOUR_MEASUREMENT_ID",
+  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.REGION.firebasedatabase.app"
 };
 
 // Initialize Firebase
