@@ -29,6 +29,13 @@
   font-size: 24px;
 }
 
+.hero-logo {
+  max-width: 200px;
+  max-height: 200px;
+  object-fit: contain;
+  border-radius: 15px;
+}
+
 .hero-content {
   text-align: center;
   margin-bottom: 30px;

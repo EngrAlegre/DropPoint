@@ -9,7 +9,7 @@ function HeroPage() {
     <div className="hero-page">
       <div className="hero-container">
         <div className="hero-image-placeholder">
-          {/* Hero Image/Banner */}
+          <img src="/logo.jpg" alt="DropPoint Logo" className="hero-logo" />
         </div>
         
         <div className="hero-content">
