@@ -47,7 +47,17 @@ function SettingsPage() {
       const unsubscribe = onValue(rfidRef, (snapshot) => {
         const rfidUid = snapshot.val();
         if (rfidUid && rfidLinking) {
-          setCurrentRfidUid(rfidUid);
+          const normalizedUid = String(rfidUid).trim().toUpperCase();
+          const previousUid = (currentRfidUid || '').trim().toUpperCase();
+
+          // Maintain UID -> userId index so the ESP32 can verify registration without reading /users
+          // - Remove previous mapping if the user re-links a different card
+          if (previousUid && previousUid !== normalizedUid) {
+            set(ref(database, `rfidIndex/${previousUid}`), null);
+          }
+          set(ref(database, `rfidIndex/${normalizedUid}`), currentUser.uid);
+
+          setCurrentRfidUid(normalizedUid);
           setRfidLinked(true);
           setRfidLinking(false);
           setMessage({ type: 'success', text: 'RFID linked successfully!' });
@@ -60,7 +70,7 @@ function SettingsPage() {
         off(rfidRef);
       };
     }
-  }, [rfidLinking, currentUser]);
+  }, [rfidLinking, currentUser, currentRfidUid]);
 
   const loadUserProfile = async () => {
     try {
@@ -91,8 +101,12 @@ function SettingsPage() {
         const rfidRef = ref(database, `users/${currentUser.uid}/rfidUid`);
         const snapshot = await get(rfidRef);
         if (snapshot.exists()) {
-          setCurrentRfidUid(snapshot.val());
+          const normalizedUid = String(snapshot.val()).trim().toUpperCase();
+          setCurrentRfidUid(normalizedUid);
           setRfidLinked(true);
+
+          // Ensure UID -> userId index exists (helps ESP32 verification)
+          set(ref(database, `rfidIndex/${normalizedUid}`), currentUser.uid);
         }
       }
     } catch (error) {

@@ -224,12 +224,26 @@ function PointStore() {
   const handleSaveRfidUid = async () => {
     if (!editingRfidUser) return;
     try {
-      if (rfidUidEdit.trim()) {
-        await set(ref(database, `users/${editingRfidUser.uid}/rfidUid`), rfidUidEdit.trim());
+      const previousUid = (editingRfidUser.rfidUid || '').trim().toUpperCase();
+      const nextUid = rfidUidEdit.trim() ? rfidUidEdit.trim().toUpperCase() : '';
+
+      if (nextUid) {
+        await set(ref(database, `users/${editingRfidUser.uid}/rfidUid`), nextUid);
+
+        // Maintain UID -> userId index for the ESP32
+        if (previousUid && previousUid !== nextUid) {
+          await set(ref(database, `rfidIndex/${previousUid}`), null);
+        }
+        await set(ref(database, `rfidIndex/${nextUid}`), editingRfidUser.uid);
         alert('RFID UID updated successfully!');
       } else {
         // Remove RFID UID if empty
         await remove(ref(database, `users/${editingRfidUser.uid}/rfidUid`));
+
+        // Remove old index mapping if present
+        if (previousUid) {
+          await set(ref(database, `rfidIndex/${previousUid}`), null);
+        }
         alert('RFID UID removed successfully!');
       }
       setEditingRfidUser(null);
