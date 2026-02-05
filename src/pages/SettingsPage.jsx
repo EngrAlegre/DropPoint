@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ref, get, set, update, onValue, off } from 'firebase/database';
 import { updatePassword, updateProfile } from 'firebase/auth';
@@ -30,6 +30,7 @@ function SettingsPage() {
   const [rfidLinking, setRfidLinking] = useState(false);
   const [rfidLinked, setRfidLinked] = useState(false);
   const [currentRfidUid, setCurrentRfidUid] = useState('');
+  const rfidLinkTimeoutRef = useRef(null);
 
   useEffect(() => {
     if (currentUser) {
@@ -59,6 +60,10 @@ function SettingsPage() {
 
           setCurrentRfidUid(normalizedUid);
           setRfidLinked(true);
+          if (rfidLinkTimeoutRef.current) {
+            clearTimeout(rfidLinkTimeoutRef.current);
+            rfidLinkTimeoutRef.current = null;
+          }
           setRfidLinking(false);
           setMessage({ type: 'success', text: 'RFID linked successfully!' });
           // Clear the linking request
@@ -71,6 +76,22 @@ function SettingsPage() {
       };
     }
   }, [rfidLinking, currentUser, currentRfidUid]);
+
+  useEffect(() => {
+    if (!rfidLinking && rfidLinkTimeoutRef.current) {
+      clearTimeout(rfidLinkTimeoutRef.current);
+      rfidLinkTimeoutRef.current = null;
+    }
+  }, [rfidLinking]);
+
+  useEffect(() => {
+    return () => {
+      if (rfidLinkTimeoutRef.current) {
+        clearTimeout(rfidLinkTimeoutRef.current);
+        rfidLinkTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const loadUserProfile = async () => {
     try {
@@ -190,6 +211,11 @@ function SettingsPage() {
   const handleStartRfidLink = async () => {
     if (!currentUser) return;
 
+    if (rfidLinkTimeoutRef.current) {
+      clearTimeout(rfidLinkTimeoutRef.current);
+      rfidLinkTimeoutRef.current = null;
+    }
+
     setRfidLinking(true);
     setRfidLinked(false);
     setMessage({ type: 'info', text: 'Please scan your RFID card on the device...' });
@@ -200,6 +226,15 @@ function SettingsPage() {
         requested: true,
         timestamp: Date.now()
       });
+
+      rfidLinkTimeoutRef.current = setTimeout(async () => {
+        try {
+          await set(ref(database, `rfidLinking/${currentUser.uid}`), null);
+        } catch (e) {
+        }
+        setRfidLinking(false);
+        setMessage({ type: 'error', text: 'RFID linking timed out. Please try again.' });
+      }, 10000);
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to start RFID linking: ' + error.message });
       setRfidLinking(false);
@@ -207,6 +242,10 @@ function SettingsPage() {
   };
 
   const handleCancelRfidLink = async () => {
+    if (rfidLinkTimeoutRef.current) {
+      clearTimeout(rfidLinkTimeoutRef.current);
+      rfidLinkTimeoutRef.current = null;
+    }
     if (currentUser) {
       await set(ref(database, `rfidLinking/${currentUser.uid}`), null);
     }
