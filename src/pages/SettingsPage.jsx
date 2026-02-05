@@ -44,35 +44,40 @@ function SettingsPage() {
   useEffect(() => {
     if (rfidLinking && currentUser) {
       // Listen for RFID scan result
-      const rfidRef = ref(database, `users/${currentUser.uid}/rfidUid`);
-      const unsubscribe = onValue(rfidRef, (snapshot) => {
-        const rfidUid = snapshot.val();
+      const rfidLinkRef = ref(database, `rfidLinking/${currentUser.uid}`);
+      const unsubscribe = onValue(rfidLinkRef, async (snapshot) => {
+        const linkData = snapshot.val();
+        const rfidUid = linkData?.rfidUid;
         if (rfidUid && rfidLinking) {
           const normalizedUid = String(rfidUid).trim().toUpperCase();
           const previousUid = (currentRfidUid || '').trim().toUpperCase();
 
-          // Maintain UID -> userId index so the ESP32 can verify registration without reading /users
-          // - Remove previous mapping if the user re-links a different card
-          if (previousUid && previousUid !== normalizedUid) {
-            set(ref(database, `rfidIndex/${previousUid}`), null);
-          }
-          set(ref(database, `rfidIndex/${normalizedUid}`), currentUser.uid);
+          try {
+            await update(ref(database, `users/${currentUser.uid}`), { rfidUid: normalizedUid });
 
-          setCurrentRfidUid(normalizedUid);
-          setRfidLinked(true);
-          if (rfidLinkTimeoutRef.current) {
-            clearTimeout(rfidLinkTimeoutRef.current);
-            rfidLinkTimeoutRef.current = null;
+            if (previousUid && previousUid !== normalizedUid) {
+              await set(ref(database, `rfidIndex/${previousUid}`), null);
+            }
+            await set(ref(database, `rfidIndex/${normalizedUid}`), currentUser.uid);
+
+            setCurrentRfidUid(normalizedUid);
+            setRfidLinked(true);
+            if (rfidLinkTimeoutRef.current) {
+              clearTimeout(rfidLinkTimeoutRef.current);
+              rfidLinkTimeoutRef.current = null;
+            }
+            setRfidLinking(false);
+            setMessage({ type: 'success', text: 'RFID linked successfully!' });
+            await set(ref(database, `rfidLinking/${currentUser.uid}`), null);
+          } catch (error) {
+            setMessage({ type: 'error', text: 'Failed to finalize RFID linking: ' + error.message });
+            setRfidLinking(false);
           }
-          setRfidLinking(false);
-          setMessage({ type: 'success', text: 'RFID linked successfully!' });
-          // Clear the linking request
-          set(ref(database, `rfidLinking/${currentUser.uid}`), null);
         }
       });
 
       return () => {
-        off(rfidRef);
+        unsubscribe();
       };
     }
   }, [rfidLinking, currentUser, currentRfidUid]);
