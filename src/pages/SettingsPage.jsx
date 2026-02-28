@@ -239,7 +239,7 @@ function SettingsPage() {
         }
         setRfidLinking(false);
         setMessage({ type: 'error', text: 'RFID linking timed out. Please try again.' });
-      }, 10000);
+      }, 50000);
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to start RFID linking: ' + error.message });
       setRfidLinking(false);
